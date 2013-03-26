@@ -230,11 +230,11 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
 
   $out .= wp_nonce_field('gip_upload_image_form', 'gip_upload_image_form_submitted');
   
-  $out .= '<label for="gip_image_caption">Title your post - tell us what you found, where, and how much it cost!</label><br/>';
-  $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" value="' . $gip_image_caption . '"/><br/>';
-  $out .= '<label for="gip_image_file">Select Your Image (up to 500kb, JPEG, GIF or PNG format)</label><br/>';  
-  $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/>';
-  $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Upload Image">';
+  $out .= '<br/><label for="gip_image_caption">Tell us what you found, where, and how much it cost.</label><br/>';
+  $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Caption for your post" value="' . $gip_image_caption . '"/><br/><br/>';
+  $out .= '<label for="gip_image_file">Select your photo (up to 500kb, JPEG, GIF or PNG format)</label><br/>';  
+  $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/><br/>';
+  $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your post">';
 
   $out .= '</form>';
 
