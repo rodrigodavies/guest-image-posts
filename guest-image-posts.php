@@ -8,7 +8,7 @@ Author: Rodrigo Davies
 Author URI: http://www.rodrigodavies.com
 */
 
-define('MAX_UPLOAD_SIZE', 1000000);
+define('MAX_UPLOAD_SIZE', 6000000);
 define('TYPE_WHITELIST', serialize(array(
   'image/jpeg',
   'image/png',
@@ -36,6 +36,7 @@ function gip_form_shortcode(){
       $user_image_data = array(
       	'post_title' => $result['caption'],
         'post_status' => 'pending',
+
         /* 'post_author' => $current_user->ID, */
         'post_type' => 'post'     
       );
@@ -53,16 +54,6 @@ function gip_form_shortcode(){
   }  
 
 
-/*
-    if(isset($_POST['gip_image_delete_id'])){
-    
-      if($user_images_deleted = gip_delete_user_images($_POST['gip_image_delete_id'])){        
-      
-        echo '<p>' . $user_images_deleted . ' images(s) deleted!</p>';
-        
-      }
-    }
-  } */
   
   echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption']);
 /*  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_category = $_POST['gip_image_category']); */
@@ -75,88 +66,7 @@ function gip_form_shortcode(){
 
 }
 
-/*
-function gip_delete_user_images($images_to_delete){
 
-  $images_deleted = 0;
-
-  foreach($images_to_delete as $user_image){
-
-    if (isset($_POST['gip_image_delete_id_' . $user_image]) && wp_verify_nonce($_POST['gip_image_delete_id_' . $user_image], 'gip_image_delete_' . $user_image)){
-    
-      if($post_thumbnail_id = get_post_thumbnail_id($user_image)){
-
-        wp_delete_attachment($post_thumbnail_id);      
-
-      }  
-
-      wp_trash_post($user_image);
-      
-      $images_deleted ++;
-
-    }
-  }
-
-  return $images_deleted;
-
-} */
-
-/*
-function gip_get_user_images_table($user_id){
-
-  $args = array(
-    'author' => $user_id,
-    'post_type' => 'post',
-    'post_status' => 'pending'    
-  );
-  
-  $user_images = new WP_Query($args);
-
-  if(!$user_images->post_count) return 0;
-  
-  $out = '';
-  $out .= '<p>Your unpublished images - Click to see full size</p>';
-  
-  $out .= '<form method="post" action="">';
-  
-  $out .= wp_nonce_field('gip_form_delete', 'gip_form_delete_submitted');  
-  
-  $out .= '<table id="user_images">';
-  $out .= '<thead><th>Image</th><th>Caption</th><th>Category</th><th>Delete</th></thead>';
-    
-  foreach($user_images->posts as $user_image){
-  
-    $user_image_cats = get_the_terms($user_image->ID, 'gip_image_category');
-    
-    foreach($user_image_cats as $cat){
-    
-      $user_image_cat = $cat->name;
-    
-    }
-    
-    $post_thumbnail_id = get_post_thumbnail_id($user_image->ID);   
-
-    $out .= wp_nonce_field('gip_image_delete_' . $user_image->ID, 'gip_image_delete_id_' . $user_image->ID, false); 
-       
-    $out .= '<tr>';
-    $out .= '<td>' . wp_get_attachment_link($post_thumbnail_id, 'thumbnail') . '</td>';    
-    $out .= '<td>' . $user_image->post_title . '</td>';
-    $out .= '<td>' . $user_image_cat . '</td>';    
-    $out .= '<td><input type="checkbox" name="gip_image_delete_id[]" value="' . $user_image->ID . '" /></td>';          
-    $out .= '</tr>';
-    
-  }
-
-  $out .= '</table>';
-    
-  $out .= '<input type="submit" name="gip_delete" value="Delete Selected Images" />';
-  $out .= '</form>';  
-  
-  return $out;
-
-}
-
-*/
 
 function gip_process_image($file, $post_id, $caption){
  
@@ -213,7 +123,7 @@ function gip_parse_file_errors($file = '', $image_caption){
     
   }elseif(($file['size'] > MAX_UPLOAD_SIZE)){
   
-    $result['error'] = 'Your image was ' . $file['size'] . ' bytes! It must not exceed 1MB.';
+    $result['error'] = 'Your image was ' . $file['size'] . ' bytes! It must not exceed 6MB.';
     
   }
     
@@ -234,21 +144,27 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
   $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Caption for your post" value="' . $gip_image_caption . '"/><br/><br/>';
   $out .= '<label for="gip_image_file">Select your photo (up to 500kb, JPEG, GIF or PNG format)</label><br/>';  
   $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/><br/>';
+  
+  $out .= '
+    <div>Where did you take your photo?</div>
+    <input type="text" id="geolocation-address" name="geolocation-address" class="newtag form-input-tip" size="25" autocomplete="off" value="" />
+    <input id="geolocation-load" type="button" class="button geolocationadd" value="Load" tabindex="3" />
+    <input type="hidden" id="geolocation-latitude" name="geolocation-latitude" />
+    <input type="hidden" id="geolocation-longitude" name="geolocation-longitude" />
+    <div id="geolocation-map" style="border:solid 1px #c6c6c6;width:265px;height:200px;margin-top:5px;"></div>
+    <div style="margin:5px 0 0 0;">
+      <input id="geolocation-public" name="geolocation-public" type="hidden" checked="checked" value="1" />
+      <input id="geolocation-enabled" name="geolocation-on" type="hidden" value="1" checked="checked" />
+      </div>
+    </div>
+  ';
   $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your post">';
-
   $out .= '</form>';
 
   return $out;
   
 }
 
-
-/*
-function gip_get_image_categories_dropdown($taxonomy, $selected){
-
-  return wp_dropdown_categories(array('taxonomy' => $taxonomy, 'name' => 'gip_image_category', 'selected' => $selected, 'hide_empty' => 0, 'echo' => 0));
-
-} */
 
 
 add_action('init', 'gip_plugin_init');
