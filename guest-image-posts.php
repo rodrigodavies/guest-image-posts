@@ -29,14 +29,14 @@ function gip_form_shortcode(){
     
     if($result['error']){
     
-      echo '<p>ERROR: ' . $result['error'] . '</p>';
+      echo '<p>Error: ' . $result['error'] . '</p>';
     
     }else{
 
       $user_image_data = array(
       	'post_title' => $result['caption'],
         'post_status' => 'pending',
-
+        'geo_address' => $geo_address,
         /* 'post_author' => $current_user->ID, */
         'post_type' => 'post'     
       );
@@ -45,9 +45,9 @@ function gip_form_shortcode(){
       
       if($post_id = wp_insert_post($user_image_data)){
       
-        gip_process_image('gip_image_file', $post_id, $result['caption']);
+        gip_process_image('gip_image_file', $post_id, $geo_address, $result['caption']);
       
-        wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'gip_image_category');
+        wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'geo_address', 'gip_image_category');
       
       }
     }
@@ -55,7 +55,7 @@ function gip_form_shortcode(){
 
 
   
-  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption']);
+  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $geo_address = $_POST['geo_address']);
 /*  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_category = $_POST['gip_image_category']); */
   /*
   if($user_images_table = gip_get_user_images_table($current_user->ID)){
@@ -68,7 +68,7 @@ function gip_form_shortcode(){
 
 
 
-function gip_process_image($file, $post_id, $caption){
+function gip_process_image($file, $post_id, $caption, $geo_address){
  
   require_once(ABSPATH . "wp-admin" . '/includes/image.php');
   require_once(ABSPATH . "wp-admin" . '/includes/file.php');
@@ -76,11 +76,12 @@ function gip_process_image($file, $post_id, $caption){
  
   $attachment_id = media_handle_upload($file, $post_id);
  
-  update_post_meta($post_id, '_thumbnail_id', $attachment_id);
+  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $geo_address);
 
   $attachment_data = array(
   	'ID' => $attachment_id,
-    'post_excerpt' => $caption
+    'post_excerpt' => $caption,
+    'geo_address' => $geo_address
   );
   
   wp_update_post($attachment_data);
@@ -133,31 +134,20 @@ function gip_parse_file_errors($file = '', $image_caption){
 
 
 
-function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0){
+function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0, $geo_address = ''){
 
   $out = '';
   $out .= '<form id="gip_upload_image_form" method="post" action="" enctype="multipart/form-data">';
 
   $out .= wp_nonce_field('gip_upload_image_form', 'gip_upload_image_form_submitted');
   
-  $out .= '<br/><label for="gip_image_caption">Tell us what you found, where, and how much it cost.</label><br/>';
+  $out .= '<br/><label for="gip_image_caption">Tell us what you found and how much it cost.</label><br/>';
   $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Caption for your post" value="' . $gip_image_caption . '"/><br/><br/>';
-  $out .= '<label for="gip_image_file">Select your photo (up to 500kb, JPEG, GIF or PNG format)</label><br/>';  
+  $out .= '<label for="gip_image_file">Select your photo (up to 6MB, JPEG, GIF or PNG format)</label><br/>';  
   $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/><br/>';
-  
-  $out .= '
-    <div>Where did you take your photo?</div>
-    <input type="text" id="geolocation-address" name="geolocation-address" class="newtag form-input-tip" size="25" autocomplete="off" value="" />
-    <input id="geolocation-load" type="button" class="button geolocationadd" value="Load" tabindex="3" />
-    <input type="hidden" id="geolocation-latitude" name="geolocation-latitude" />
-    <input type="hidden" id="geolocation-longitude" name="geolocation-longitude" />
-    <div id="geolocation-map" style="border:solid 1px #c6c6c6;width:265px;height:200px;margin-top:5px;"></div>
-    <div style="margin:5px 0 0 0;">
-      <input id="geolocation-public" name="geolocation-public" type="hidden" checked="checked" value="1" />
-      <input id="geolocation-enabled" name="geolocation-on" type="hidden" value="1" checked="checked" />
-      </div>
-    </div>
-  ';
+  $out .= '<br/><label for="gip_image_caption">Where did you find it? Tell us the street address and city</label><br/>';
+  $out .= '<input type="text" id="geo_address" name="geo_address" placeholder = "Address" value="' . $geo_address . '"/><br/><br/>';
+
   $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your post">';
   $out .= '</form>';
 
@@ -189,6 +179,7 @@ function gip_plugin_init(){
   
   $image_type_args = array(
     'labels' => $image_type_labels,
+    'geo_address' => $geo_address,
     'public' => true,
     'query_var' => true,
     'rewrite' => true,
