@@ -26,37 +26,56 @@ function gip_form_shortcode(){
   if(isset( $_POST['gip_upload_image_form_submitted'] ) && wp_verify_nonce($_POST['gip_upload_image_form_submitted'], 'gip_upload_image_form') ){  
 
     $result = gip_parse_file_errors($_FILES['gip_image_file'], $_POST['gip_image_caption']);
-    
+    $geo_address = $_POST['geo_address'];
+	
     if($result['error']){
     
       echo '<p>Error: ' . $result['error'] . '</p>';
     
     }else{
-
-      $user_image_data = array(
-      	'post_title' => $result['caption'],
-        'post_status' => 'pending',
-        'geo_address' => $geo_address,
-        /* 'post_author' => $current_user->ID, */
-        'post_type' => 'post'     
-      );
-
+		$lat = $_POST['latitude'];
+		$lon = $_POST['longitude'];
+		//echo '<p>Lat: ' . $_POST['latitude'] . "," . $_POST['longitude'] . '</p>';
+		$user_image_data = array(
+			'post_title' => $result['caption'],
+			'post_status' => 'pending',
+			/* 'post_author' => $current_user->ID, */
+			'post_type' => 'post'     
+		  );
+      
+		if (strlen($geo_address) > 1) {
+			$address = str_replace(" ", "+", $geo_address);
+			$url = "http://maps.googleapis.com/maps/api/geocode/json?address=".$address."&sensor=false";
+			$geoinfo = wp_remote_get( $url );
+			if( "OK" == $geoinfo['response']['message'] ) {
+				$geoinfo = json_decode($geoinfo['body']);
+				$lat = $geoinfo->results[0]->geometry->location->lat;
+				$lon = $geoinfo->results[0]->geometry->location->lng;
+			}
+		} else {
+			$geo_address = $_POST['accuracy'];
+		}
+		
       echo '<p><b>Thank you! Your image has been submitted, and the Fresh Food Boston team will review it soon.</b></p>';
       
       if($post_id = wp_insert_post($user_image_data)){
       
-        gip_process_image('gip_image_file', $post_id, $geo_address, $result['caption']);
-      
-        wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'geo_address', 'gip_image_category');
+        gip_process_image('gip_image_file', $post_id, $result['caption']);
+      	update_post_meta($post_id, '_lat', $lat);
+		update_post_meta($post_id, '_lon', $lon);
+		update_post_meta($post_id, '_address', $geo_address);
+
+        //wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'geo_address', 'gip_image_category');
       
       }
     }
   }  
 
 
-  
-  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $geo_address = $_POST['geo_address']);
-/*  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_category = $_POST['gip_image_category']); */
+
+	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $geo_address = $_POST['geo_address']);
+    echo gip_get_geolocation_form();
+	/*  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_category = $_POST['gip_image_category']); */
   /*
   if($user_images_table = gip_get_user_images_table($current_user->ID)){
   
@@ -68,7 +87,7 @@ function gip_form_shortcode(){
 
 
 
-function gip_process_image($file, $post_id, $caption, $geo_address){
+function gip_process_image($file, $post_id, $caption){
  
   require_once(ABSPATH . "wp-admin" . '/includes/image.php');
   require_once(ABSPATH . "wp-admin" . '/includes/file.php');
@@ -76,13 +95,12 @@ function gip_process_image($file, $post_id, $caption, $geo_address){
  
   $attachment_id = media_handle_upload($file, $post_id);
  
-  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $geo_address);
+  update_post_meta($post_id, '_thumbnail_id', $attachment_id);
 
-  $attachment_data = array(
-  	'ID' => $attachment_id,
-    'post_excerpt' => $caption,
-    'geo_address' => $geo_address
-  );
+	$attachment_data = array(
+		'ID' => $attachment_id,
+		'post_excerpt' => $caption
+	);
   
   wp_update_post($attachment_data);
 
@@ -140,12 +158,12 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
   $out .= '<form id="gip_upload_image_form" method="post" action="" enctype="multipart/form-data">';
 
   $out .= wp_nonce_field('gip_upload_image_form', 'gip_upload_image_form_submitted');
-  
+  $out .= '<input type="hidden" name="latitude" id="latitude" value=""><input type="hidden" id="longitude" name="longitude" value=""><input type="hidden" id="accuracy"  name="accuracy" value="">';
   $out .= '<br/><label for="gip_image_caption">Tell us what you found and how much it cost.</label><br/>';
   $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Caption for your post" value="' . $gip_image_caption . '"/><br/><br/>';
   $out .= '<label for="gip_image_file">Select your photo (up to 6MB, JPEG, GIF or PNG format)</label><br/>';  
   $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/><br/>';
-  $out .= '<br/><label for="gip_image_caption">Where did you find it? Tell us the street address and city</label><br/>';
+  $out .= '<br/><label for="gip_image_caption">Where did you find it? If the location is not shown in a map below, tell us the street address and city:</label><br/>';
   $out .= '<input type="text" id="geo_address" name="geo_address" placeholder = "Address" value="' . $geo_address . '"/><br/><br/>';
 
   $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your post">';
@@ -155,6 +173,112 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
   
 }
 
+function gip_get_geolocation_form(){
+?>
+
+	<script language="javascript" type="text/javascript" src="<?php echo site_url(); ?>/wp-includes/js/jquery/jquery2.js"></script>
+	<script language="javascript" type="text/javascript" src="<?php echo site_url(); ?>/wp-includes/js/jquery/jquery.cookie.js"></script>
+	</head>
+
+	<script type="text/javascript">
+				
+		var latitude;
+		var longitude;
+		var accuracy;
+		
+	window.onload = function(){
+		
+			if(navigator.geolocation) {
+				//document.getElementById("status").innerHTML = "HTML5 Geolocation is supported in your browser.";
+				//document.getElementById("status").style.color = "#1ABC3C";
+				
+				if($.cookie("posLat")) {
+					latitude = $.cookie("posLat");
+					longitude = $.cookie("posLon");
+					accuracy = $.cookie("posAccuracy");
+					//document.getElementById("status").innerHTML = "Location data retrieved from cookies. <a id=\"clear_cookies\" href=\" javascript:clear_cookies();\" style=\"cursor:pointer; margin-left: 15px;\"> clear cookies</a>";
+					updateDisplay();
+					
+				} else {
+					navigator.geolocation.getCurrentPosition(
+										success_handler, 
+										error_handler, 
+										{timeout:10000});
+				}
+			}
+		}
+
+		function success_handler(position) {
+			latitude = position.coords.latitude;
+			longitude = position.coords.longitude;
+			accuracy = position.coords.accuracy;
+			
+			if (!latitude || !longitude) {
+				document.getElementById("status").innerHTML = "HTML5 Geolocation supported, but location data is currently unavailable.";
+				return;
+			}
+			
+			updateDisplay();
+			
+			$.cookie("posLat", latitude);
+			$.cookie("posLon", longitude);
+			$.cookie("posAccuracy", accuracy);
+		  
+		}
+		
+		function updateDisplay() {
+			//var gmapdata = '<iframe width="425" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://maps.google.com/maps?f=q&amp;source=s_q&amp;hl=en&amp;geocode=&amp;ie=UTF8&amp;hq=&amp;ll=' + latitude + ',' + longitude + '&amp;output=embed"></iframe>';
+			var gmapdata = '<img src="http://maps.google.com/maps/api/staticmap?center=' + latitude + ',' + longitude + '&zoom=16&size=425x350&sensor=false" />';
+					
+			document.getElementById("placeholder").innerHTML = gmapdata;
+			document.getElementById("latitude").value = latitude;
+			document.getElementById("longitude").value = longitude;
+			document.getElementById("accuracy").value = accuracy;
+		}
+		
+		
+		function error_handler(error) {
+			var locationError = '';
+			
+			switch(error.code){
+			case 0:
+				locationError = "There was an error while retrieving your location: " + error.message;
+				break;
+			case 1:
+				locationError = "The user prevented this page from retrieving a location.";
+				break;
+			case 2:
+				locationError = "The browser was unable to determine your location: " + error.message;
+				break;
+			case 3:
+				locationError = "The browser timed out before retrieving the location.";
+				break;
+			}
+
+			document.getElementById("status").innerHTML = locationError;
+			document.getElementById("status").style.color = "#D03C02";
+		}
+		
+		function clear_cookies() {
+			$.cookie('posLat', null);
+			document.getElementById("status").innerHTML = "Cookies cleared.";
+		}
+		
+	   
+	</script>
+
+	<div class="content">
+			<strong><span id="status"></span></strong>
+			<span id="latitude"></span>
+			<span id="longitude"></span>
+			<span id="accuracy"></span>
+			<div id="placeholder" style="margin: 20px 0px 10px; padding-left: 20px; width: 100%; height: 100%; position: relative;">
+			<i>Note: May take a few seconds to get the location.</i>
+			</div>
+	</div>
+
+<?php
+}
 
 
 add_action('init', 'gip_plugin_init');
