@@ -14,10 +14,6 @@
               <h3 class="entry-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>              
               <?php the_content(); ?>
 
-                        <div id="placeholder" style="margin: 0px 0px 0px; padding-left: 0px; width: 70%; height: 70%; position: relative;">
-                        </div>
-  
-
 			  <?php wp_link_pages();?>
             </div>
           </div>

@@ -272,7 +272,7 @@ function gip_get_geolocation_form(){
 			<span id="latitude"></span>
 			<span id="longitude"></span>
 			<span id="accuracy"></span>
-			<div id="placeholder" style="margin: 20px 0px 10px; padding-left: 20px; width: 100%; height: 100%; position: relative;">
+			<div id="placeholder" style="width: 100%; height: 100%; position: relative;">
 			<i>Note: May take a few seconds to get the location.</i>
 			</div>
 	</div>
