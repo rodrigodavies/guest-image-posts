@@ -59,9 +59,9 @@ function gip_form_shortcode(){
       if($post_id = wp_insert_post($user_image_data)){
       
         gip_process_image('gip_image_file', $post_id, $result['caption']);
-      	update_post_meta($post_id, '_lat', $lat);
-		update_post_meta($post_id, '_lon', $lon);
-		update_post_meta($post_id, '_address', $geo_address);
+      	update_post_meta($post_id, 'geo_latitude', $lat);
+		update_post_meta($post_id, 'geo_longitude', $lon);
+		update_post_meta($post_id, 'geo_address', $geo_address);
 
         //wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'geo_address', 'gip_image_category');
       
@@ -86,16 +86,15 @@ function gip_process_image($file, $post_id, $caption){
  
   $attachment_id = media_handle_upload($file, $post_id);
  
-  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $tags);
-  update_post_meta($post_id, '_lat', $lat);
-  update_post_meta($post_id, '_lon', $lon);
-  update_post_meta($post_id, '_address', $geo_address);
-  update_post_meta($post_id), 'the_tags', $gip_image_tags);
+  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $gip_image_tags);
+  update_post_meta($post_id, 'geo_latitude', $lat);
+  update_post_meta($post_id, 'geo_latitude', $lon);
+  update_post_meta($post_id, 'geo_address', $geo_address);
 
 	$attachment_data = array(
 		'ID' => $attachment_id,
 		'post_excerpt' => $caption,
-		'tags' => $tags
+		'tags_input' => $gip_image_tags
 	);
   
   wp_update_post($attachment_data);
