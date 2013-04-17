@@ -25,21 +25,19 @@ function gip_form_shortcode(){
     
   if(isset( $_POST['gip_upload_image_form_submitted'] ) && wp_verify_nonce($_POST['gip_upload_image_form_submitted'], 'gip_upload_image_form') ){  
 
-    $result = gip_parse_file_errors($_FILES['gip_image_file'], $_POST['gip_image_caption']);
+    $result = gip_parse_file_errors($_FILES['gip_image_file'], $_POST['gip_image_caption'], $_POST['gip_image_tags'], $_POST['geo_address']);
     $geo_address = $_POST['geo_address'];
 	
     if($result['error']){
     
-      echo '<p>Error: ' . $result['error'] . '</p>';
+      echo '<p style="color: red">Error: ' . $result['error'] . '</p>';
     
     }else{
 		$lat = $_POST['latitude'];
 		$lon = $_POST['longitude'];
-		//echo '<p>Lat: ' . $_POST['latitude'] . "," . $_POST['longitude'] . '</p>';
 		$user_image_data = array(
 			'post_title' => $result['caption'],
 			'post_status' => 'pending',
-			/* 'post_author' => $current_user->ID, */
 			'post_type' => 'post'     
 		  );
       
@@ -56,7 +54,7 @@ function gip_form_shortcode(){
 			$geo_address = $_POST['accuracy'];
 		}
 		
-      echo '<p><b>Thank you! Your image has been submitted, and the Fresh Food Boston team will review it soon.</b></p>';
+      echo '<p style="color: green"><b>Thank you! Your image has been submitted, and the Fresh Food Boston team will review it soon.</b></p>';
       
       if($post_id = wp_insert_post($user_image_data)){
       
@@ -73,16 +71,9 @@ function gip_form_shortcode(){
 
 
 
-	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $geo_address = $_POST['geo_address']);
+	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_tags = $_POST['gip_image_tags'], $geo_address = $_POST['geo_address']);
     echo gip_get_geolocation_form();
-	/*  echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_category = $_POST['gip_image_category']); */
-  /*
-  if($user_images_table = gip_get_user_images_table($current_user->ID)){
-  
-    echo $user_images_table;
-    
-  } */
-
+    echo gip_get_upload_image_submit();
 }
 
 
@@ -95,11 +86,16 @@ function gip_process_image($file, $post_id, $caption){
  
   $attachment_id = media_handle_upload($file, $post_id);
  
-  update_post_meta($post_id, '_thumbnail_id', $attachment_id);
+  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $tags);
+  update_post_meta($post_id, '_lat', $lat);
+  update_post_meta($post_id, '_lon', $lon);
+  update_post_meta($post_id, '_address', $geo_address);
+  update_post_meta($post_id), 'the_tags', $gip_image_tags);
 
 	$attachment_data = array(
 		'ID' => $attachment_id,
-		'post_excerpt' => $caption
+		'post_excerpt' => $caption,
+		'tags' => $tags
 	);
   
   wp_update_post($attachment_data);
@@ -152,25 +148,34 @@ function gip_parse_file_errors($file = '', $image_caption){
 
 
 
-function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0, $geo_address = ''){
+function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0, $gip_image_tags = '', $geo_address = ''){
 
   $out = '';
   $out .= '<form id="gip_upload_image_form" method="post" action="" enctype="multipart/form-data">';
 
   $out .= wp_nonce_field('gip_upload_image_form', 'gip_upload_image_form_submitted');
   $out .= '<input type="hidden" name="latitude" id="latitude" value=""><input type="hidden" id="longitude" name="longitude" value=""><input type="hidden" id="accuracy"  name="accuracy" value="">';
-  $out .= '<br/><label for="gip_image_caption">Tell us what you found and how much it cost.</label><br/>';
-  $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Caption for your post" value="' . $gip_image_caption . '"/><br/><br/>';
-  $out .= '<label for="gip_image_file">Select your photo (up to 6MB, JPEG, GIF or PNG format)</label><br/>';  
-  $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/><br/>';
-  $out .= '<br/><label for="gip_image_caption">Where did you find it? If the location is not shown in a map below, tell us the street address and city:</label><br/>';
+  $out .= '<label for="gip_image_file">Step 1. Choose your photo (up to 6MB, JPEG, GIF or PNG format)</label>';  
+  $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/>';
+  $out .= '<label for="gip_image_caption">Step 2. Describe what you found and how much it cost.</label>';
+  $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Three bananas for $1" value="' . $gip_image_caption . '"/><br/>';
+  $out .= '<br/><label for="gip_image_tags">Step 3. Add some tags, like <i>vegetable</i>, <i>cooked meal</i> or <i>Dorchester</i></label>';
+  $out .= '<input type="text" id="gip_image_tags" name="gip_image_tags" placeholder = "Tags" value="' . $gip_image_tags . '"/><br/>';
+  $out .= '<br/><label for="geo_address">Step 4. Where did you find it? If the map below is incorrect or missing, type the address here</label>';
   $out .= '<input type="text" id="geo_address" name="geo_address" placeholder = "Address" value="' . $geo_address . '"/><br/><br/>';
-
-  $out .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your post">';
-  $out .= '</form>';
 
   return $out;
   
+}
+
+function gip_get_upload_image_submit(){
+
+  $out2 .= '';
+  $out2 .= '<input type="submit" id="gip_submit" name="gip_submit" value="Submit your photo">';
+  $out2 .= '</form>';
+
+  return $out2;
+
 }
 
 function gip_get_geolocation_form(){
@@ -196,6 +201,7 @@ function gip_get_geolocation_form(){
 					latitude = $.cookie("posLat");
 					longitude = $.cookie("posLon");
 					accuracy = $.cookie("posAccuracy");
+					document.getElementById("status").innerHTML = "We saved your location from a previous visit. <a id=\"clear_cookies\" href=\" javascript:clear_cookies();\" style=\"cursor:pointer;\">Click here to clear it (you'll need to refresh your browser to detect a new location).</a>";
 					//document.getElementById("status").innerHTML = "Location data retrieved from cookies. <a id=\"clear_cookies\" href=\" javascript:clear_cookies();\" style=\"cursor:pointer; margin-left: 15px;\"> clear cookies</a>";
 					updateDisplay();
 					
@@ -228,7 +234,7 @@ function gip_get_geolocation_form(){
 		
 		function updateDisplay() {
 			//var gmapdata = '<iframe width="425" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://maps.google.com/maps?f=q&amp;source=s_q&amp;hl=en&amp;geocode=&amp;ie=UTF8&amp;hq=&amp;ll=' + latitude + ',' + longitude + '&amp;output=embed"></iframe>';
-			var gmapdata = '<img src="http://maps.google.com/maps/api/staticmap?center=' + latitude + ',' + longitude + '&zoom=16&size=425x350&sensor=false" />';
+			var gmapdata = '<img src="http://maps.google.com/maps/api/staticmap?center=' + latitude + ',' + longitude + '&zoom=16&size=400x350&sensor=true" />';
 					
 			document.getElementById("placeholder").innerHTML = gmapdata;
 			document.getElementById("latitude").value = latitude;
