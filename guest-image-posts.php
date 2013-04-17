@@ -88,7 +88,7 @@ function gip_process_image($file, $post_id, $caption){
  
   update_post_meta($post_id, '_thumbnail_id', $attachment_id, $gip_image_tags);
   update_post_meta($post_id, 'geo_latitude', $lat);
-  update_post_meta($post_id, 'geo_latitude', $lon);
+  update_post_meta($post_id, 'geo_longitude', $lon);
   update_post_meta($post_id, 'geo_address', $geo_address);
 
 	$attachment_data = array(
@@ -303,7 +303,7 @@ function gip_plugin_init(){
     'not_found' =>  __('No User Images found'),
     'not_found_in_trash' => __('No User Images found in Trash'), 
     'parent_item_colon' => '',
-    'menu_name' => 'User Images'
+    'menu_name' => 'User Images' 
   );
   
   $image_type_args = array(
