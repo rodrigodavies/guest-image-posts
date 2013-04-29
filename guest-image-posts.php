@@ -25,7 +25,7 @@ function gip_form_shortcode(){
     
   if(isset( $_POST['gip_upload_image_form_submitted'] ) && wp_verify_nonce($_POST['gip_upload_image_form_submitted'], 'gip_upload_image_form') ){  
 
-    $result = gip_parse_file_errors($_FILES['gip_image_file'], $_POST['gip_image_caption'], $_POST['gip_image_tags'], $_POST['geo_address']);
+    $result = gip_parse_file_errors($_FILES['gip_image_file'], $_POST['gip_image_caption'], $_POST['image_tags'], $_POST['geo_address']);
     $geo_address = $_POST['geo_address'];
 	
     if($result['error']){
@@ -35,10 +35,15 @@ function gip_form_shortcode(){
     }else{
 		$lat = $_POST['latitude'];
 		$lon = $_POST['longitude'];
+		$gip_image_tags = array (
+			'tags' => $_POST['image_tags'],
+			'price' => $_POST['price']
+			);
 		$user_image_data = array(
 			'post_title' => $result['caption'],
 			'post_status' => 'pending',
-			'post_type' => 'post'     
+			'post_type' => 'post', 
+			'tags_input' => $image_tags     
 		  );
       
 		if (strlen($geo_address) > 1) {
@@ -62,6 +67,8 @@ function gip_form_shortcode(){
       	update_post_meta($post_id, 'geo_latitude', $lat);
 		update_post_meta($post_id, 'geo_longitude', $lon);
 		update_post_meta($post_id, 'geo_address', $geo_address);
+		wp_set_post_tags( $post_id, $gip_image_tags, $append );
+
 
         //wp_set_object_terms($post_id, (int)$_POST['gip_image_category'], 'geo_address', 'gip_image_category');
       
@@ -71,7 +78,7 @@ function gip_form_shortcode(){
 
 
 
-	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $gip_image_tags = $_POST['gip_image_tags'], $geo_address = $_POST['geo_address']);
+	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $image_tags = $_POST['image_tags'], $geo_address = $_POST['geo_address']);
     echo gip_get_geolocation_form();
     echo gip_get_upload_image_submit();
 }
@@ -86,7 +93,7 @@ function gip_process_image($file, $post_id, $caption){
  
   $attachment_id = media_handle_upload($file, $post_id);
  
-  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $gip_image_tags);
+  update_post_meta($post_id, '_thumbnail_id', $attachment_id, $image_tags);
   update_post_meta($post_id, 'geo_latitude', $lat);
   update_post_meta($post_id, 'geo_longitude', $lon);
   update_post_meta($post_id, 'geo_address', $geo_address);
@@ -94,7 +101,7 @@ function gip_process_image($file, $post_id, $caption){
 	$attachment_data = array(
 		'ID' => $attachment_id,
 		'post_excerpt' => $caption,
-		'tags_input' => $gip_image_tags
+		'tags_input' => $image_tags
 	);
   
   wp_update_post($attachment_data);
@@ -147,7 +154,7 @@ function gip_parse_file_errors($file = '', $image_caption){
 
 
 
-function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0, $gip_image_tags = '', $geo_address = ''){
+function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category = 0, $image_tags = '', $geo_address = ''){
 
   $out = '';
   $out .= '<form id="gip_upload_image_form" method="post" action="" enctype="multipart/form-data">';
@@ -156,13 +163,16 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
   $out .= '<input type="hidden" name="latitude" id="latitude" value=""><input type="hidden" id="longitude" name="longitude" value=""><input type="hidden" id="accuracy"  name="accuracy" value="">';
   $out .= '<label for="gip_image_file">Step 1. Choose your photo (up to 6MB, JPEG, GIF or PNG format)</label>';  
   $out .= '<input type="file" size="60" name="gip_image_file" id="gip_image_file"><br/>';
-  $out .= '<label for="gip_image_caption">Step 2. Describe what you found and how much it cost.</label>';
+  $out .= '<label for="gip_image_caption">Step 2. Describe what you found.</label>';
   $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Three bananas for $1" value="' . $gip_image_caption . '"/><br/>';
-  $out .= '<br/><label for="gip_image_tags">Step 3. Add some tags, like <i>vegetable</i>, <i>cooked meal</i> or <i>Dorchester</i></label>';
-  $out .= '<input type="text" id="gip_image_tags" name="gip_image_tags" placeholder = "Tags" value="' . $gip_image_tags . '"/><br/>';
+  $out .= '<br/><label for="image_tags">Step 3. Add some tags, like <i>vegetable</i>, <i>cooked meal</i> or <i>Dorchester</i></label>';
+  $out .= '<input type="text" id="image_tags" name="image_tags" placeholder = "Tags" value="' . $image_tags . '"/><br/>';
   $out .= '<br/><label for="geo_address">Step 4. Where did you find it? If the map below is incorrect or missing, type the address here</label>';
   $out .= '<input type="text" id="geo_address" name="geo_address" placeholder = "Address" value="' . $geo_address . '"/><br/><br/>';
-
+  $out .= '<label for="price">Step 5. How much did it cost? Choose one of the three options below</label>';
+  $out .= '<label for="price1"><input type="radio" id="price1" name="price" value="Less than a dollar"/> Less than $1</label>';
+  $out .= '<label for="price2"><input type="radio" id="price2" name="price" value="A few dollars"/> $2 - $5</label>';
+  $out .= '<label for="price3"><input type="radio" id="price3" name="price" value="More than five dollars"/> $5 or more</label>';
   return $out;
   
 }
