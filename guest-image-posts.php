@@ -35,6 +35,7 @@ function gip_form_shortcode(){
     }else{
 		$lat = $_POST['latitude'];
 		$lon = $_POST['longitude'];
+		$gip_email = $_POST['gip_email'];
 		$gip_image_tags = array (
 			'tags' => $_POST['image_tags'],
 			'price' => $_POST['price']
@@ -67,6 +68,7 @@ function gip_form_shortcode(){
       	update_post_meta($post_id, 'geo_latitude', $lat);
 		update_post_meta($post_id, 'geo_longitude', $lon);
 		update_post_meta($post_id, 'geo_address', $geo_address);
+		update_post_meta($post_id, 'gip_email', $gip_email);
 		wp_set_post_tags( $post_id, $gip_image_tags, $append );
 
 
@@ -78,7 +80,7 @@ function gip_form_shortcode(){
 
 
 
-	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $image_tags = $_POST['image_tags'], $geo_address = $_POST['geo_address']);
+	echo gip_get_upload_image_form($gip_image_caption = $_POST['gip_image_caption'], $image_tags = $_POST['image_tags'], $geo_address = $_POST['geo_address'], $gip_email = $_POST['gip_email']);
     echo gip_get_geolocation_form();
     echo gip_get_upload_image_submit();
 }
@@ -97,6 +99,7 @@ function gip_process_image($file, $post_id, $caption){
   update_post_meta($post_id, 'geo_latitude', $lat);
   update_post_meta($post_id, 'geo_longitude', $lon);
   update_post_meta($post_id, 'geo_address', $geo_address);
+  update_post_meta($post_id, 'gip_email', $gip_email);
 
 	$attachment_data = array(
 		'ID' => $attachment_id,
@@ -167,9 +170,11 @@ function gip_get_upload_image_form($gip_image_caption = '', $gip_image_category 
   $out .= '<input type="text" id="gip_image_caption" name="gip_image_caption" placeholder = "Three bananas for $1" value="' . $gip_image_caption . '"/><br/>';
   $out .= '<br/><label for="image_tags">Step 3. Add some tags, like <i>vegetable</i>, <i>cooked meal</i> or <i>Dorchester</i></label>';
   $out .= '<input type="text" id="image_tags" name="image_tags" placeholder = "Tags" value="' . $image_tags . '"/><br/>';
-  $out .= '<br/><label for="geo_address">Step 4. Where did you find it? If the map below is incorrect or missing, type the address here</label>';
+  $out .= '<br/><label for="gip_email">Step 4. Want to win a prize? Enter your email below.</label>';
+  $out .= '<input type="text" id="gip_email" name="gip_email" placeholder = "email@example.com" value="' . $gip_email . '"/><br/>';
+  $out .= '<br/><label for="geo_address">Step 5. Where did you find it? If the map below is incorrect or missing, type the address here</label>';
   $out .= '<input type="text" id="geo_address" name="geo_address" placeholder = "Address" value="' . $geo_address . '"/><br/><br/>';
-  $out .= '<label for="price">Step 5. How much did it cost? Choose one of the three options below</label>';
+  $out .= '<label for="price">Step 6. How much did it cost? Choose one of the three options below</label>';
   $out .= '<label for="price1"><input type="radio" id="price1" name="price" value="Less than a dollar"/> Less than $1</label>';
   $out .= '<label for="price2"><input type="radio" id="price2" name="price" value="A few dollars"/> $2 - $5</label>';
   $out .= '<label for="price3"><input type="radio" id="price3" name="price" value="More than five dollars"/> $5 or more</label>';
